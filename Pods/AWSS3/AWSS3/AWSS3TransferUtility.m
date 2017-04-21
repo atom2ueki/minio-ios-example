@@ -243,7 +243,7 @@ static AWSS3TransferUtility *_defaultS3TransferUtility = nil;
                                                                 attributes:nil
                                                                      error:&error];
         if (!result) {
-            AWSLogError(@"Failed to create a temporary directory: %@", error);
+            AWSDDLogError(@"Failed to create a temporary directory: %@", error);
         }
         
         // Clean up the temporary directory
@@ -304,6 +304,14 @@ static AWSS3TransferUtility *_defaultS3TransferUtility = nil;
                                                       userInfo:nil]];
     }
     
+    NSString *filePath = [fileURL absoluteString];
+    // [fileURL absoluteString] prefix is "file:///", length 8
+    if ([filePath length] < 8 || ! [[NSFileManager defaultManager] fileExistsAtPath:[filePath substringFromIndex:7]]) {
+        return [AWSTask taskWithError:[NSError errorWithDomain:AWSS3TransferUtilityErrorDomain
+                                                          code:AWSS3TransferUtilityErrorLocalFileNotFound
+                                                      userInfo:nil]];
+    }
+    
     if (!expression) {
         expression = [AWSS3TransferUtilityUploadExpression new];
     }
@@ -342,9 +350,7 @@ static AWSS3TransferUtility *_defaultS3TransferUtility = nil;
             [request setValue:expression.requestHeaders[key] forHTTPHeaderField:key];
         }
         
-        if ([AWSLogger defaultLogger].logLevel >= AWSLogLevelDebug) {
-            AWSLogDebug(@"Request headers:\n%@", request.allHTTPHeaderFields);
-        }
+        AWSDDLogDebug(@"Request headers:\n%@", request.allHTTPHeaderFields);
         
         NSURLSessionUploadTask *uploadTask = [weakSelf.session uploadTaskWithRequest:request
                                                                             fromFile:fileURL];
@@ -423,9 +429,7 @@ static AWSS3TransferUtility *_defaultS3TransferUtility = nil;
             [request setValue:expression.requestHeaders[key] forHTTPHeaderField:key];
         }
         
-        if ([AWSLogger defaultLogger].logLevel >= AWSLogLevelDebug) {
-            AWSLogDebug(@"Request headers:\n%@", request.allHTTPHeaderFields);
-        }
+        AWSDDLogDebug(@"Request headers:\n%@", request.allHTTPHeaderFields);
         
         NSURLSessionDownloadTask *downloadTask = [weakSelf.session downloadTaskWithRequest:request];
         [downloadTask resume];
@@ -448,7 +452,7 @@ static AWSS3TransferUtility *_defaultS3TransferUtility = nil;
     __weak AWSS3TransferUtility *weakSelf = self;
     [self.session getTasksWithCompletionHandler:^(NSArray *dataTasks, NSArray *uploadTasks, NSArray *downloadTasks) {
         if ([dataTasks count] != 0) {
-            AWSLogError(@"The underlying NSURLSession contains data tasks. This should not happen.");
+            AWSDDLogError(@"The underlying NSURLSession contains data tasks. This should not happen.");
         }
         
         [uploadTasks enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
@@ -501,7 +505,7 @@ static AWSS3TransferUtility *_defaultS3TransferUtility = nil;
     __weak AWSS3TransferUtility *weakSelf = self;
     [self.session getTasksWithCompletionHandler:^(NSArray *dataTasks, NSArray *uploadTasks, NSArray *downloadTasks) {
         if ([dataTasks count] != 0) {
-            AWSLogError(@"The underlying NSURLSession contains data tasks. This should not happen.");
+            AWSDDLogError(@"The underlying NSURLSession contains data tasks. This should not happen.");
         }
         
         [uploadTasks enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
@@ -533,7 +537,7 @@ static AWSS3TransferUtility *_defaultS3TransferUtility = nil;
     __weak AWSS3TransferUtility *weakSelf = self;
     [self.session getTasksWithCompletionHandler:^(NSArray *dataTasks, NSArray *uploadTasks, NSArray *downloadTasks) {
         if ([dataTasks count] != 0) {
-            AWSLogError(@"The underlying NSURLSession contains data tasks. This should not happen.");
+            AWSDDLogError(@"The underlying NSURLSession contains data tasks. This should not happen.");
         }
         
         [uploadTasks enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
@@ -557,7 +561,7 @@ static AWSS3TransferUtility *_defaultS3TransferUtility = nil;
     __weak AWSS3TransferUtility *weakSelf = self;
     [self.session getTasksWithCompletionHandler:^(NSArray *dataTasks, NSArray *uploadTasks, NSArray *downloadTasks) {
         if ([dataTasks count] != 0) {
-            AWSLogError(@"The underlying NSURLSession contains data tasks. This should not happen.");
+            AWSDDLogError(@"The underlying NSURLSession contains data tasks. This should not happen.");
         }
         
         [downloadTasks enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
@@ -579,7 +583,7 @@ static AWSS3TransferUtility *_defaultS3TransferUtility = nil;
     NSArray *contentsOfDirectory = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:self.temporaryDirectoryPath
                                                                                        error:&error];
     if (!contentsOfDirectory) {
-        AWSLogError(@"Failed to retrieve the contents of the tempoprary directory: %@", error);
+        AWSDDLogError(@"Failed to retrieve the contents of the tempoprary directory: %@", error);
     }
     
     // Goes through the temporary directory.
@@ -591,7 +595,7 @@ static AWSS3TransferUtility *_defaultS3TransferUtility = nil;
         NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath
                                                                                     error:&error];
         if (!attributes) {
-            AWSLogError(@"Failed to load temporary file attributes: %@", error);
+            AWSDDLogError(@"Failed to load temporary file attributes: %@", error);
         }
         NSDate *fileCreationDate = [attributes objectForKey:NSFileCreationDate];
         // Removes an 'expired' temporary file.
@@ -600,7 +604,7 @@ static AWSS3TransferUtility *_defaultS3TransferUtility = nil;
             BOOL result = [[NSFileManager defaultManager] removeItemAtPath:filePath
                                                                      error:&error];
             if (!result) {
-                AWSLogError(@"Failed to remove a temporary file: %@", error);
+                AWSDDLogError(@"Failed to remove a temporary file: %@", error);
             }
         }
     }];
@@ -610,7 +614,7 @@ static AWSS3TransferUtility *_defaultS3TransferUtility = nil;
 
 - (AWSS3TransferUtilityUploadTask *)getUploadTask:(NSURLSessionUploadTask *)uploadTask {
     if (![uploadTask isKindOfClass:[NSURLSessionUploadTask class]]) {
-        AWSLogError(@"uploadTask is not an instance of NSURLSessionUploadTask.");
+        AWSDDLogError(@"uploadTask is not an instance of NSURLSessionUploadTask.");
         return nil;
     }
     
@@ -628,7 +632,7 @@ static AWSS3TransferUtility *_defaultS3TransferUtility = nil;
 
 - (AWSS3TransferUtilityDownloadTask *)getDownloadTask:(NSURLSessionDownloadTask *)downloadTask {
     if (![downloadTask isKindOfClass:[NSURLSessionDownloadTask class]]) {
-        AWSLogError(@"downloadTask is not an instance of NSURLSessionDownloadTask.");
+        AWSDDLogError(@"downloadTask is not an instance of NSURLSessionDownloadTask.");
         return nil;
     }
     

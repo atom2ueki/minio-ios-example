@@ -22,16 +22,16 @@ class ViewController: UIViewController {
         uploadButton.isHidden = true
         activityIndicator.startAnimating()
         
-        let accessKey = "XXXXXXX"
-        let secretKey = "XXXXXXX"
+        let accessKey = "xxxxxx"
+        let secretKey = "xxxxxx"
         
         let credentialsProvider = AWSStaticCredentialsProvider(accessKey: accessKey, secretKey: secretKey)
-        let configuration = AWSServiceConfiguration(region: .USEast1, endpoint: AWSEndpoint(region: .USEast1, service: .S3, url: URL(string:"XXXXXX")),credentialsProvider: credentialsProvider)
+        let configuration = AWSServiceConfiguration(region: .USEast1, endpoint: AWSEndpoint(region: .USEast1, service: .S3, url: URL(string:"xxxxxx")),credentialsProvider: credentialsProvider)
         
         AWSServiceManager.default().defaultServiceConfiguration = configuration
         
         let S3BucketName = "images"
-        let remoteName = "test.jpg"
+        let remoteName = "prefix_test.jpg"
         let fileURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(remoteName)
         let image = UIImage(named: "test")
         let data = UIImageJPEGRepresentation(image!, 0.9)
@@ -49,8 +49,9 @@ class ViewController: UIViewController {
         
         let transferManager = AWSS3TransferManager.default()
         
+        transferManager.upload(uploadRequest)
+        
         transferManager.upload(uploadRequest).continueWith { (task: AWSTask<AnyObject>) -> Any? in
-            print(task)
             
             DispatchQueue.main.async {
                 self.uploadButton.isHidden = false
@@ -64,7 +65,7 @@ class ViewController: UIViewController {
             if task.result != nil {
                 let url = AWSS3.default().configuration.endpoint.url
                 let publicURL = url?.appendingPathComponent(uploadRequest.bucket!).appendingPathComponent(uploadRequest.key!)
-                print("Uploaded to:\(String(describing: publicURL))")
+                print("Uploaded to:\(String(describing: publicURL!))")
             }
             
             return nil
